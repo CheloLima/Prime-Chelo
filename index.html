@@ -17,8 +17,9 @@
             --color-border: var(--color-accent);
             --font-headings: 'Orbitron', sans-serif;
             --font-body: 'Rajdhani', sans-serif;
-            --shadow-accent: 0 0 5px var(--color-accent), 0 0 10px var(--color-accent), 0 0 15px var(--color-accent);
-            --shadow-accent-hover: 0 0 8px var(--color-accent), 0 0 16px var(--color-accent), 0 0 24px var(--color-accent);
+            /* Reduzierter Textschatten für bessere Lesbarkeit */
+            --shadow-accent: 0 0 3px var(--color-accent), 0 0 6px rgba(144, 238, 144, 0.5);
+            --shadow-accent-hover: 0 0 5px var(--color-accent), 0 0 10px rgba(144, 238, 144, 0.7);
         }
 
         *, *::before, *::after {
@@ -697,8 +698,38 @@
             const messageModalTitle = document.getElementById('message-modal-title');
             const messageModalText = document.getElementById('message-modal-text');
 
+            // --- Kernfunktionen & Zustandsmanipulation (weiter oben für besseren Scope) ---
 
-            // --- Hilfsfunktionen ---
+            // Wird von Power Search und clearDashboardData benötigt
+            function toggleAllPartnerCheckboxes(event) {
+                const isChecked = event.target.checked;
+                powerSearchPartnersFilter.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    if (cb.id !== 'power-search-select-all-partners') {
+                        cb.checked = isChecked;
+                    }
+                });
+                performPowerSearch(); // PowerSearch nach Änderung auslösen
+            }
+
+            // Wird von vielen Inventaroperationen und Gemini-Import benötigt
+            async function saveInventoryChanges() {
+                try {
+                    const response = await apiCall('update_inventory', { inventory: userInventory });
+                    if (response.status === 'success') {
+                        showMessageModal('Erfolg', 'Inventar erfolgreich aktualisiert.');
+                        renderMyInventory(inventorySearchInput.value);
+                        populateUpdateItemSelect();
+                    } else {
+                        showMessageModal('Fehler', response.message || 'Inventar konnte nicht gespeichert werden.');
+                        await loadUserDashboardData();
+                    }
+                } catch (error) {
+                     showMessageModal('Fehler', error.message || 'Inventar konnte nicht gespeichert werden.');
+                     await loadUserDashboardData();
+                }
+            }
+
+            // --- API-Kommunikation und UI-Hilfsfunktionen ---
             async function apiCall(action, data = {}, method = 'POST') {
                 try {
                     const options = {
@@ -1451,20 +1482,8 @@
                     document.getElementById('power-search-select-all-partners').addEventListener('change', toggleAllPartnerCheckboxes);
 
                 }
-
-                function toggleAllPartnerCheckboxes(event) {
-                    const isChecked = event.target.checked;
-                    powerSearchPartnersFilter.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                        if (cb.id !== 'power-search-select-all-partners') {
-                            cb.checked = isChecked;
-                        }
-                    });
-                    performPowerSearch();
-                }
-                // Initial call for select all
-                if(powerSearchSelectAllPartnersCheckbox) {
-                    powerSearchSelectAllPartnersCheckbox.addEventListener('change', toggleAllPartnerCheckboxes);
-                }
+                // Definition von toggleAllPartnerCheckboxes wurde nach oben verschoben.
+                // Der initiale Event Listener wird in init() korrekt gesetzt.
 
 
                 let powerSearchTimeout;
