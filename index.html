@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Warframe Inventar-Terminal by Chelo Lima EIRL</title>
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAADBJREFUOE9jZGBgYGD4//8/A5UBE5OXYQAbImageLqAUzFmAGEjQBGMGAAANs0CLsQn9lcAAAAASUVORK5CYII=" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         /* --- Globale Stile & Variablen --- */
@@ -628,7 +629,7 @@
 
     <footer class="app-footer">
         <p class="footer-line-1" id="footer-text-1"></p>
-        <p class="footer-line-2">Made with ♥️ in 🇵🇪 Lima for the World!</p>
+        <p class="footer-line-2">Made with ❤️ in &#x1F1F5;&#x1F1EA; Lima for the World!</p>
     </footer>
 
     <script>
@@ -784,9 +785,13 @@
                 myInventoryPagination.innerHTML = '';
                 updateItemSelect.innerHTML = '<option value="">Item zum Aktualisieren auswählen</option>';
                 powerSearchResultsTableBody.innerHTML = '';
-                powerSearchPartnersFilter.innerHTML = '<label><input type="checkbox" id="power-search-select-all-partners" checked> <span>Alle auswählen</span></label>'; // Reset
-                document.getElementById('power-search-select-all-partners').addEventListener('change', toggleAllPartnerCheckboxes);
-
+                // Reset powerSearchPartnersFilter, aber stelle sicher, dass der Event Listener für die neue Checkbox gesetzt wird
+                const selectAllLabelHTML = '<label><input type="checkbox" id="power-search-select-all-partners" checked> <span>Alle auswählen</span></label>';
+                powerSearchPartnersFilter.innerHTML = selectAllLabelHTML;
+                const newSelectAllCheckbox = document.getElementById('power-search-select-all-partners');
+                if (newSelectAllCheckbox) { // Sicherstellen, dass das Element existiert, bevor der Listener angehängt wird
+                    newSelectAllCheckbox.addEventListener('change', toggleAllPartnerCheckboxes);
+                }
 
                 receivedRequestsList.innerHTML = '<li>Keine empfangenen Anfragen.</li>';
                 sentRequestsList.innerHTML = '<li>Keine gesendeten Anfragen.</li>';
