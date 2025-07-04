@@ -1634,18 +1634,9 @@
                     geminiKeyInputField.classList.add('hidden');
                 });
                 startGeminiImportBtn.addEventListener('click', () => {
-                    // Die eigentliche Gemini API-Integration ist komplex und hier nicht implementiert.
-                    // Hier würde man die Datei (inventoryFileUpload.files[0]) nehmen,
-                    // den API-Key (localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY)
-                    // und einen Aufruf an die Gemini API senden.
-                    // Das Ergebnis würde dann geparst und ins Inventar übernommen werden (ggf. nach Bestätigung).
-                    if (!inventoryFileUpload.files || inventoryFileUpload.files.length === 0) {
-                        showMessageModal('Gemini Import', 'Bitte wähle zuerst eine Bild- oder Videodatei aus.');
-                        return;
-                    }
-                    const userApiKey = localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY;
-                    showMessageModal('Gemini Import', `Starte Import mit Datei: ${inventoryFileUpload.files[0].name} und Key: ${userApiKey.substring(0,10)}... (Diese Funktion ist ein Prototyp und führt keine echte Verarbeitung durch.)`);
-                    // Hier könnte man z.B. eine Ladeanzeige starten
+                    // Die folgende Zeile war der Überrest, der den Fehler verursachte und wird entfernt.
+                    // showMessageModal('Gemini Import', `Starte Import mit Datei: ${inventoryFileUpload.files[0].name} und Key: ${userApiKey.substring(0,10)}... (Diese Funktion ist ein Prototyp und führt keine echte Verarbeitung durch.)`);
+
                     if (!inventoryFileUpload.files || inventoryFileUpload.files.length === 0) {
                         showMessageModal('Gemini Import', 'Bitte wähle zuerst eine Bild- oder Videodatei aus.');
                         return;
