@@ -1,55 +1,39 @@
 <?php
-// Warframe Inventar-Terminal by Chelo Lima EIRL
-// Datenbank-Konfigurationsdatei
+// Warframe Inventar-Terminal - Datenbank Konfiguration
+// Version 1.0
 
-// Definiere die MySQL-Zugangsdaten als Konstanten
-// Diese Daten sind fest im Code hinterlegt gemäß der Anforderung.
-// In einer Produktivumgebung sollten diese idealerweise über Umgebungsvariablen geladen werden.
+// Definiere die MySQL Zugangsdaten
+// WICHTIG: Ändere diese Werte entsprechend deiner lokalen oder Produktivumgebung,
+// aber für dieses Projekt sind sie fest vorgegeben.
 
-define('DB_HOST', 'localhost');       // Hostname der Datenbank
-define('DB_USER', 'chelo_prime');      // Datenbank-Benutzername
-define('DB_PASS', '%6Opps^c9BBzfb9y'); // Datenbank-Passwort
-define('DB_NAME', 'chelo_prime');      // Datenbankname
-
-// Optional: Definiere den Zeichensatz für die Datenbankverbindung
-define('DB_CHARSET', 'utf8mb4');
+define('DB_HOST', 'localhost');
+define('DB_USER', 'chelo_prime');
+define('DB_PASS', '%6Opps^c9BBzfb9y');
+define('DB_NAME', 'chelo_prime');
 
 /**
- * Funktion zum Herstellen einer Datenbankverbindung.
- * Gibt ein PDO-Objekt bei Erfolg zurück oder beendet das Skript bei einem Fehler.
+ * Stellt eine Verbindung zur MySQL-Datenbank her.
+ *
+ * @return mysqli|false Das mysqli-Verbindungsobjekt bei Erfolg, false bei einem Fehler.
  */
-function connect_db() {
-    $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
-    $options = [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION, // Fehler als Exceptions werfen
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,       // Ergebnisse als assoziative Arrays
-        PDO::ATTR_EMULATE_PREPARES   => false,                  // Echte Prepared Statements verwenden
-    ];
+function getDbConnection() {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
-    try {
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
-        return $pdo;
-    } catch (PDOException $e) {
-        // In einer Produktivumgebung sollte hier ein angemessenes Logging stattfinden
-        // und keine detaillierte Fehlermeldung an den Client gesendet werden.
-        // Für Entwicklungszwecke kann die Fehlermeldung hilfreich sein.
-        error_log("Datenbankverbindungsfehler: " . $e->getMessage());
-        http_response_code(500); // Internal Server Error
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Datenbankverbindungsfehler. Bitte kontaktieren Sie den Administrator.'
-            // 'debug_message' => $e->getMessage() // Nur für Entwicklung, nicht in Produktion
-        ]);
-        exit; // Skriptausführung beenden
+    // Überprüfe die Verbindung
+    if ($conn->connect_error) {
+        // Im Fehlerfall nicht die genauen Fehlerdetails ausgeben,
+        // um Informationslecks zu vermeiden. Logge sie serverseitig.
+        error_log("Datenbankverbindungsfehler: " . $conn->connect_error);
+        return false;
     }
+
+    // Setze den Zeichensatz auf utf8mb4 für volle Unicode-Unterstützung
+    if (!$conn->set_charset("utf8mb4")) {
+        error_log("Fehler beim Setzen des Zeichensatzes utf8mb4: " . $conn->error);
+        // Hier könnte man entscheiden, die Verbindung trotzdem zurückzugeben oder auch false
+    }
+
+    return $conn;
 }
 
-// Test der Verbindung (optional, kann auskommentiert oder entfernt werden)
-/*
-if (connect_db()) {
-    echo "Datenbankverbindung erfolgreich hergestellt.";
-} else {
-    echo "Fehler bei der Datenbankverbindung.";
-}
-*/
 ?>
