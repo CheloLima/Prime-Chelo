@@ -799,6 +799,240 @@
             }
 
 
+                // --- Hilfsfunktionen für Gemini ---
+                function fileToDataUrl(file) {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = e => resolve(e.target.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                }
+
+                async function extractFramesFromFile(file) {
+                    const fileType = file.type.split('/')[0];
+                    const dataUrl = await fileToDataUrl(file);
+                    const base64Data = dataUrl.split(',')[1];
+
+                    if (fileType === 'image') {
+                        return [{ mimeType: file.type, data: base64Data }];
+                    }
+
+                    if (fileType === 'video') {
+                        return new Promise((resolve, reject) => {
+                            const video = document.createElement('video');
+                            video.preload = 'metadata';
+                            video.muted = true;
+                            video.playsInline = true;
+
+                            const canvas = document.createElement('canvas');
+                            const context = canvas.getContext('2d');
+                            const frames = [];
+                            const maxFrames = 5;
+                            let framesExtracted = 0;
+
+                            video.onloadedmetadata = async () => {
+                                canvas.width = video.videoWidth;
+                                canvas.height = video.videoHeight;
+
+                                if (typeof video.duration !== 'number' || isNaN(video.duration) || video.duration === 0 || video.duration === Infinity) {
+                                    console.warn("Videodauer nicht zuverlässig. Versuche, einen einzelnen Frame zu extrahieren.");
+                                    video.currentTime = 0.1;
+                                    await new Promise(r => setTimeout(r, 500));
+                                    try {
+                                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                        frames.push({ mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', 0.8).split(',')[1] });
+                                    } catch (e) {
+                                        console.error("Fehler beim Zeichnen des Video-Frames auf Canvas:", e);
+                                        reject("Fehler beim Extrahieren des Video-Frames.");
+                                        return;
+                                    }
+                                    resolve(frames);
+                                    return;
+                                }
+
+                                const interval = Math.max(0.2, video.duration / maxFrames);
+                                let currentTime = 0;
+
+                                function processFrame() {
+                                    if (framesExtracted >= maxFrames || currentTime > video.duration) {
+                                        if (frames.length > 0) resolve(frames);
+                                        else if (video.duration > 0) reject("Keine Frames konnten extrahiert werden trotz gültiger Dauer.");
+                                        else { // Fallback, wenn Dauer 0 war und erster Versuch fehlschlug
+                                             try {
+                                                video.currentTime = 0.1; // Erneut versuchen
+                                                setTimeout(() => { // Kurze Wartezeit für das Setzen der currentTime
+                                                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                                    frames.push({ mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', 0.8).split(',')[1] });
+                                                    resolve(frames);
+                                                }, 300);
+                                            } catch(e) {
+                                                reject("Keine Frames konnten extrahiert werden.");
+                                            }
+                                        }
+                                        return;
+                                    }
+                                    video.currentTime = currentTime;
+                                }
+
+                                video.onseeked = () => {
+                                    try {
+                                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                                        frames.push({ mimeType: 'image/jpeg', data: canvas.toDataURL('image/jpeg', 0.8).split(',')[1] });
+                                        framesExtracted++;
+                                        currentTime += interval;
+                                        processFrame();
+                                    } catch (e) {
+                                        console.error("Fehler beim Zeichnen des Video-Frames auf Canvas (onseeked):", e);
+                                        if (frames.length > 0) resolve(frames); else reject("Fehler beim Extrahieren der Video-Frames.");
+                                    }
+                                };
+
+                                video.onerror = (e) => {
+                                    console.error("Video Ladefehler:", e);
+                                    reject("Fehler beim Laden des Videos.");
+                                };
+
+                                processFrame();
+                            };
+
+                            video.onerror = (e) => {
+                                console.error("Video Fehler (allgemein):", e);
+                                reject("Allgemeiner Videofehler.");
+                            };
+
+                            video.src = dataUrl;
+                        });
+                    }
+                    return [];
+                }
+
+                async function analyzeFramesWithGemini(base64Frames, apiKey) {
+                    const allFoundItems = new Map(); // Verwenden einer Map, um Duplikate zu behandeln und Mengen zu aktualisieren
+                    const prompt = `Du bist eine KI zur Datenextraktion für das Spiel Warframe. Analysiere das Bild des Inventars. Identifiziere jeden Gegenstand und seine Anzahl.
+- Gib deine Antwort NUR als valides JSON-Array zurück. KEINEN anderen Text, keine Erklärungen, kein Markdown.
+- Jedes Objekt im Array MUSS die Schlüssel "name" (string) und "quantity" (number) haben.
+- Wenn bei einem Gegenstand eine Zahl steht (z.B. links oben neben dem Icon oder im Namen wie "[30]"), ist das die Anzahl.
+- Wenn KEINE explizite Anzahl sichtbar ist, setze die "quantity" auf 1.
+- Beispiel: [{"name": "Argon-Kristall", "quantity": 1}, {"name": "Ayatan-Stern: Amber", "quantity": 2}, {"name": "Bergungsgut", "quantity": 13404}]
+- Wenn absolut nichts erkannt wird, gib ein leeres Array [] zurück.`;
+
+                    // Ladeanzeige starten (einfache Version, kann erweitert werden)
+                    const originalButtonText = startGeminiImportBtn.textContent;
+                    startGeminiImportBtn.disabled = true;
+                    startGeminiImportBtn.textContent = 'Analysiere...';
+
+                    for (const frame of base64Frames) {
+                        const payload = {
+                            contents: [{
+                                parts: [
+                                    { text: prompt },
+                                    { inlineData: { mimeType: frame.mimeType, data: frame.data } }
+                                ]
+                            }]
+                        };
+                        try {
+                            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+                            const response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+
+                            if (!response.ok) {
+                                const errorBody = await response.json();
+                                console.error(`API-Anfrage fehlgeschlagen:`, errorBody);
+                                showMessageModal('Gemini API Fehler', `API Fehler: ${errorBody.error?.message || response.statusText}`);
+                                // Bei einem Fehler mit einem Frame, versuchen wir es mit dem nächsten, anstatt ganz abzubrechen.
+                                continue;
+                            }
+
+                            const result = await response.json();
+                            let text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                            if (text) {
+                                text = text.replace(/```json/g, '').replace(/```/g, '').trim(); // Bereinigen von Markdown-Code-Blöcken
+                                try {
+                                    const items = JSON.parse(text);
+                                    if (Array.isArray(items)) {
+                                        items.forEach(item => {
+                                            if (item.name && typeof item.name === 'string' && typeof item.quantity === 'number') {
+                                                const cleanedName = item.name.trim();
+                                                // Wenn das Item bereits existiert, nehme die größere Menge (oder addiere, je nach gewünschtem Verhalten)
+                                                // Hier: nehme die größte gesehene Menge für ein Item über alle Frames
+                                                if (!allFoundItems.has(cleanedName) || item.quantity > allFoundItems.get(cleanedName).quantity) {
+                                                   allFoundItems.set(cleanedName, {name: cleanedName, quantity: item.quantity});
+                                                }
+                                            }
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.error("JSON Parse Fehler:", e, "Rohtext:", text);
+                                    // Fehler beim Parsen dieses Frames, aber fahre mit dem nächsten fort
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Netzwerkfehler oder Fehler bei der Anfrage:", e);
+                            showMessageModal('Netzwerkfehler', `Fehler bei der Kommunikation mit Gemini: ${e.message}`);
+                            // Bei Netzwerkfehler für einen Frame, fahre trotzdem fort (oder breche ab, je nach Strategie)
+                            // Hier: Wir loggen und fahren fort.
+                        }
+                    }
+
+                    // Ladeanzeige beenden
+                    startGeminiImportBtn.disabled = false;
+                    startGeminiImportBtn.textContent = originalButtonText;
+
+                    return Array.from(allFoundItems.values()); // Gib ein Array von {name, quantity} Objekten zurück
+                }
+
+                async function updateInventoryWithGeminiResults(geminiItems) {
+                    if (!geminiItems || geminiItems.length === 0) {
+                        showMessageModal('Gemini Import', 'Keine Items von Gemini erkannt oder verarbeitet.');
+                        return;
+                    }
+
+                    let itemsAddedCount = 0;
+                    let itemsUpdatedCount = 0;
+                    let confirmationMessages = [];
+
+                    geminiItems.forEach(geminiItem => {
+                        const existingItem = userInventory.find(invItem => invItem.item_name.toLowerCase() === geminiItem.name.toLowerCase());
+                        if (existingItem) {
+                            if (geminiItem.quantity > existingItem.quantity) {
+                                confirmationMessages.push(`Menge von "${geminiItem.name}" von ${existingItem.quantity} auf ${geminiItem.quantity} erhöht.`);
+                                existingItem.quantity = geminiItem.quantity;
+                                itemsUpdatedCount++;
+                            } else {
+                                // Optional: Nachricht, dass Item nicht aktualisiert wurde, da Menge geringer oder gleich
+                                confirmationMessages.push(`"${geminiItem.name}" bereits mit Menge ${existingItem.quantity} vorhanden (Gemini fand ${geminiItem.quantity}). Nicht geändert.`);
+                            }
+                        } else {
+                            userInventory.push({
+                                item_name: geminiItem.name,
+                                quantity: geminiItem.quantity,
+                                category: 'Gemini-Import' // Standardkategorie
+                            });
+                            itemsAddedCount++;
+                            confirmationMessages.push(`"${geminiItem.name}" (Menge: ${geminiItem.quantity}) neu zum Inventar hinzugefügt (Kategorie: Gemini-Import).`);
+                        }
+                    });
+
+                    if (itemsAddedCount > 0 || itemsUpdatedCount > 0) {
+                        await saveInventoryChanges(); // Bestehende Funktion zum Speichern des gesamten Inventars nutzen
+                        let summary = `Gemini Import abgeschlossen: ${itemsAddedCount} Item(s) neu hinzugefügt, ${itemsUpdatedCount} Item(s) aktualisiert.\n\nDetails:\n- ${confirmationMessages.join('\n- ')}`;
+                        summary += "\n\nBitte überprüfe die Kategorie 'Gemini-Import' und passe sie ggf. an.";
+
+                        showMessageModal('Gemini Import Erfolgreich', summary);
+                        // Inventaransicht und Dropdown aktualisieren
+                        renderMyInventory(inventorySearchInput.value);
+                        populateUpdateItemSelect();
+                    } else {
+                        showMessageModal('Gemini Import', 'Keine Änderungen am Inventar vorgenommen. Möglicherweise waren alle erkannten Items bereits mit gleicher oder höherer Menge vorhanden.\n\nDetails:\n- ' + confirmationMessages.join('\n- '));
+                    }
+                }
+
+
             // --- Initialisierung ---
             function init() {
                 // Dynamischer Footer
@@ -1381,7 +1615,7 @@
                     });
                 });
 
-                // --- Gemini Bilderkennung (UI-Platzhalter) ---
+                // --- Gemini Bilderkennung ---
                 customGeminiKeyBtn.addEventListener('click', () => {
                     geminiKeyInputField.classList.toggle('hidden');
                     if (!geminiKeyInputField.classList.contains('hidden')) {
@@ -1412,6 +1646,41 @@
                     const userApiKey = localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY;
                     showMessageModal('Gemini Import', `Starte Import mit Datei: ${inventoryFileUpload.files[0].name} und Key: ${userApiKey.substring(0,10)}... (Diese Funktion ist ein Prototyp und führt keine echte Verarbeitung durch.)`);
                     // Hier könnte man z.B. eine Ladeanzeige starten
+                    if (!inventoryFileUpload.files || inventoryFileUpload.files.length === 0) {
+                        showMessageModal('Gemini Import', 'Bitte wähle zuerst eine Bild- oder Videodatei aus.');
+                        return;
+                    }
+                    const file = inventoryFileUpload.files[0];
+                    const userApiKey = localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY;
+
+                    startGeminiImportBtn.disabled = true;
+                    startGeminiImportBtn.textContent = 'Verarbeite Datei...';
+
+                    extractFramesFromFile(file)
+                        .then(frames => {
+                            if (!frames || frames.length === 0) {
+                                showMessageModal('Gemini Import Fehler', 'Konnte keine Frames aus der Datei extrahieren.');
+                                startGeminiImportBtn.disabled = false;
+                                startGeminiImportBtn.textContent = 'Import starten';
+                                return null; // Kette unterbrechen
+                            }
+                            startGeminiImportBtn.textContent = 'Analysiere mit Gemini...';
+                            return analyzeFramesWithGemini(frames, userApiKey);
+                        })
+                        .then(geminiItems => {
+                            if (geminiItems) { // Nur wenn analyzeFramesWithGemini nicht null zurückgegeben hat (also kein Fehler vorher)
+                                return updateInventoryWithGeminiResults(geminiItems);
+                            }
+                        })
+                        .catch(error => {
+                            console.error("Fehler im Gemini Import Prozess:", error);
+                            showMessageModal('Gemini Import Fehler', `Ein Fehler ist aufgetreten: ${error.message || error}`);
+                        })
+                        .finally(() => {
+                            startGeminiImportBtn.disabled = false;
+                            startGeminiImportBtn.textContent = 'Import starten';
+                            inventoryFileUpload.value = ''; // Datei-Upload-Feld zurücksetzen
+                        });
                 });
 
                 // --- Geheime Funktion: Inventar löschen ---
