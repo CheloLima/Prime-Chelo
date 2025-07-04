@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warframe Inventar-Terminal by Chelo Lima EIRL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Rajdhani:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- Globale Stile & Variablen --- */
+        :root {
+            --color-background: #1a1a1a;
+            --color-container-bg: #2a2a2a;
+            --color-accent: #90ee90; /* Leuchtgrün */
+            --color-text: #e0e0e0;
+            --color-text-darker: #a0a0a0;
+            --color-border: var(--color-accent);
+            --font-headings: 'Orbitron', sans-serif;
+            --font-body: 'Rajdhani', sans-serif;
+            --shadow-accent: 0 0 5px var(--color-accent), 0 0 10px var(--color-accent), 0 0 15px var(--color-accent);
+            --shadow-accent-hover: 0 0 8px var(--color-accent), 0 0 16px var(--color-accent), 0 0 24px var(--color-accent);
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: 1.6;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            flex: 1;
+            width: 95%;
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: var(--color-container-bg);
+            border: 1px solid var(--color-border);
+            box-shadow: 0 0 15px rgba(144, 238, 144, 0.2);
+            opacity: 0; /* For fadeIn animation */
+            animation: fadeInApp 1s ease-out forwards;
+        }
+
+        @keyframes fadeInApp {
+            to { opacity: 1; }
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-headings);
+            color: var(--color-accent);
+            text-shadow: var(--shadow-accent);
+            margin-bottom: 0.75em;
+        }
+        h1 { font-size: 2.5em; text-align: center; }
+        h2 { font-size: 1.8em; border-bottom: 1px solid var(--color-accent); padding-bottom: 0.3em;}
+        h3 { font-size: 1.4em; }
+
+        /* --- Utility Klassen --- */
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .accent-text { color: var(--color-accent); }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+
+        /* --- Header --- */
+        .app-header {
+            padding: 10px 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .app-header h1 {
+            margin-bottom: 0;
+        }
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: var(--color-text-darker);
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            font-family: var(--font-body);
+            background-color: transparent;
+            color: var(--color-accent);
+            border: 1px solid var(--color-accent);
+            padding: 10px 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 5px rgba(144, 238, 144, 0.3);
+            opacity: 0;
+            animation: fadeInElement 0.5s ease-out forwards;
+            animation-delay: 0.2s; /* Kleine Verzögerung für gestaffeltes Erscheinen */
+        }
+        .btn:hover, .btn:focus {
+            background-color: var(--color-accent);
+            color: var(--color-background);
+            box-shadow: var(--shadow-accent-hover);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            color: var(--color-text-darker);
+            border-color: var(--color-text-darker);
+        }
+        .btn-secondary:hover, .btn-secondary:focus {
+            background-color: var(--color-text-darker);
+            color: var(--color-background);
+            box-shadow: 0 0 8px var(--color-text-darker), 0 0 16px var(--color-text-darker);
+        }
+        .btn-danger {
+            color: #ff6b6b;
+            border-color: #ff6b6b;
+        }
+        .btn-danger:hover, .btn-danger:focus {
+            background-color: #ff6b6b;
+            color: var(--color-background);
+            box-shadow: 0 0 8px #ff6b6b, 0 0 16px #ff6b6b;
+        }
+
+
+        /* --- Formulare --- */
+        .form-group {
+            margin-bottom: 1rem;
+            opacity: 0;
+            animation: fadeInElement 0.5s ease-out forwards;
+            animation-delay: 0.3s;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            color: var(--color-accent);
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--color-background);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+            font-family: var(--font-body);
+            font-size: 1em;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--color-accent);
+            box-shadow: 0 0 8px rgba(144, 238, 144, 0.5);
+        }
+        select.form-control {
+            appearance: none; /* Remove default arrow */
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2390ee90%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px auto;
+        }
+
+        /* --- Modale Fenster --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px); /* Für Safari */
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; /* For fadeIn animation */
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: var(--color-container-bg);
+            padding: 30px;
+            border: 1px solid var(--color-border);
+            box-shadow: 0 0 20px rgba(144, 238, 144, 0.3);
+            min-width: 300px;
+            max-width: 500px;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .modal-backdrop.active .modal-content {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 10px;
+        }
+        .modal-header h3 {
+            margin-bottom: 0;
+        }
+        .close-modal-btn {
+            background: none;
+            border: none;
+            color: var(--color-accent);
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        /* --- Tabellen (für Inventar etc.) --- */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            opacity: 0;
+            animation: fadeInElement 0.5s ease-out forwards;
+            animation-delay: 0.4s;
+        }
+        .data-table th, .data-table td {
+            border: 1px solid var(--color-border);
+            padding: 10px;
+            text-align: left;
+        }
+        .data-table th {
+            background-color: rgba(144, 238, 144, 0.1); /* Leicht grünlicher Header */
+            color: var(--color-accent);
+            font-family: var(--font-headings);
+            font-weight: 500;
+        }
+        .data-table tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+        .data-table tr:hover {
+            background-color: rgba(144, 238, 144, 0.08);
+        }
+
+        /* --- Sektionen / Container --- */
+        .content-section {
+            background-color: rgba(0,0,0,0.2);
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(144, 238, 144, 0.3);
+            box-shadow: inset 0 0 10px rgba(144, 238, 144, 0.1);
+            opacity: 0;
+            animation: fadeInElement 0.6s ease-out forwards;
+        }
+        .content-section:nth-of-type(1) { animation-delay: 0.1s; }
+        .content-section:nth-of-type(2) { animation-delay: 0.2s; }
+        .content-section:nth-of-type(3) { animation-delay: 0.3s; }
+        /* Add more if needed */
+
+
+        /* --- Footer --- */
+        .app-footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: auto; /* Drückt den Footer nach unten */
+            font-size: 0.9em;
+            color: var(--color-text-darker);
+            border-top: 1px solid var(--color-border);
+            opacity: 0;
+            animation: fadeInElement 0.5s ease-out forwards;
+            animation-delay: 0.5s; /* Etwas später als der Hauptcontainer */
+        }
+        .footer-line-1 {
+            margin-bottom: 5px;
+        }
+
+        /* --- Animations --- */
+        @keyframes fadeInElement {
+            to { opacity: 1; }
+        }
+
+        /* --- Spezifische Layouts für Bereiche (Platzhalter) --- */
+        #dashboard-view, #login-view {
+            /* Werden später per JS gesteuert */
+        }
+
+        /* --- Login/Register Form Specific --- */
+        #login-form-container {
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 20px;
+            border: 1px solid var(--color-accent);
+            background-color: var(--color-container-bg);
+        }
+        .form-toggle-link {
+            color: var(--color-accent);
+            text-decoration: underline;
+            cursor: pointer;
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+        }
+        .form-toggle-link:hover {
+            text-shadow: var(--shadow-accent);
+        }
+
+        /* --- Kleiner Button für Custom Gemini Key --- */
+        #custom-gemini-key-container {
+            margin-top: 5px;
+            text-align: right; /* Oder wo immer es passt */
+        }
+        #custom-gemini-key-btn {
+            font-size: 0.8em;
+            padding: 3px 8px;
+            background: transparent;
+            color: var(--color-text-darker);
+            border: 1px solid var(--color-text-darker);
+            cursor: pointer;
+        }
+        #custom-gemini-key-btn:hover {
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+        #gemini-key-input-field {
+            margin-top: 5px;
+        }
+
+        /* Pagination */
+        .pagination {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .pagination button {
+            margin: 0 5px;
+        }
+        .pagination button.active {
+            background-color: var(--color-accent);
+            color: var(--color-background);
+            font-weight: bold;
+        }
+
+        /* Checkbox Styling für Power Search */
+        .checkbox-group label {
+            display: inline-flex; /* Changed from block to inline-flex */
+            align-items: center;
+            margin-right: 15px; /* Abstand zwischen Checkboxen */
+            color: var(--color-text); /* Standard Textfarbe, nicht Akzent */
+            font-weight: normal; /* Nicht fett */
+        }
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 5px;
+            accent-color: var(--color-accent); /* Modern way to style checkboxes */
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        /* Fallback für ältere Browser, die accent-color nicht unterstützen */
+        @supports not (accent-color: var(--color-accent)) {
+            .checkbox-group input[type="checkbox"] {
+                opacity: 0; /* Hide original checkbox */
+                position: absolute;
+            }
+            .checkbox-group input[type="checkbox"] + span {
+                position: relative;
+                padding-left: 25px; /* Space for custom checkbox */
+                cursor: pointer;
+                user-select: none;
+            }
+            .checkbox-group input[type="checkbox"] + span::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 1px;
+                width: 16px;
+                height: 16px;
+                border: 1px solid var(--color-accent);
+                background: var(--color-background);
+                border-radius: 3px;
+            }
+            .checkbox-group input[type="checkbox"]:checked + span::after {
+                content: '✓'; /* Checkmark */
+                position: absolute;
+                left: 3px;
+                top: -1px; /* Adjust for best visual fit */
+                font-size: 16px;
+                color: var(--color-accent);
+                font-weight: bold;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Warframe Inventar-Terminal</h1>
+            <div class="header-info">
+                <span id="user-greeting">Nicht eingeloggt</span>
+                <button id="logout-btn" class="btn btn-secondary hidden">Logout</button>
+            </div>
+        </header>
+
+        <main id="main-content">
+            <!-- Login/Registrierungsansicht -->
+            <section id="login-view">
+                <div id="login-form-container">
+                    <h2 id="form-title">Login</h2>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="tenno_name_login">Tenno-Name</label>
+                            <input type="text" id="tenno_name_login" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password_login">Passwort</label>
+                            <input type="password" id="password_login" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn">Login</button>
+                    </form>
+                    <form id="register-form" class="hidden">
+                        <div class="form-group">
+                            <label for="tenno_name_register">Tenno-Name</label>
+                            <input type="text" id="tenno_name_register" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ingame_name_register">In-Game-Name (Warframe)</label>
+                            <input type="text" id="ingame_name_register" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password_register">Passwort</label>
+                            <input type="password" id="password_register" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="access_key_register">Access Key</label>
+                            <input type="text" id="access_key_register" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn">Registrieren</button>
+                    </form>
+                    <p id="form-error-message" class="accent-text mt-1" style="color: #ff6b6b;"></p>
+                    <a id="toggle-form-link" class="form-toggle-link">Noch keinen Account? Registrieren</a>
+                </div>
+            </section>
+
+            <!-- Dashboard-Ansicht (nach Login) -->
+            <section id="dashboard-view" class="hidden">
+                <h2>Dashboard</h2>
+                <div class="content-section" id="my-inventory-section">
+                    <h3>Mein Inventar</h3>
+                    <div class="form-group">
+                        <label for="inventory-search">Inventar durchsuchen:</label>
+                        <input type="search" id="inventory-search" class="form-control" placeholder="Item suchen...">
+                    </div>
+                    <table class="data-table" id="my-inventory-table">
+                        <thead>
+                            <tr>
+                                <th>Kategorie</th>
+                                <th>Item</th>
+                                <th>Menge</th>
+                                <th>Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Inventar-Items werden hier per JS eingefügt -->
+                        </tbody>
+                    </table>
+                    <div class="pagination" id="my-inventory-pagination"></div>
+
+                    <h4 class="mt-2">Inventar verwalten</h4>
+                    <form id="add-item-form" class="mt-1">
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div class="form-group" style="flex-grow: 1;">
+                                <label for="new-item-name">Neues Item</label>
+                                <input type="text" id="new-item-name" class="form-control" placeholder="Item-Name">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-item-quantity">Menge</label>
+                                <input type="number" id="new-item-quantity" class="form-control" value="1" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="new-item-category">Kategorie</label>
+                                <input type="text" id="new-item-category" class="form-control" placeholder="z.B. Prime-Teile">
+                            </div>
+                            <button type="submit" class="btn" style="height: 40px; margin-bottom: 1rem;">Hinzufügen</button>
+                        </div>
+                    </form>
+                    <form id="update-item-form" class="mt-1">
+                         <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div class="form-group" style="flex-grow: 1;">
+                                <label for="update-item-select">Item auswählen zum Aktualisieren</label>
+                                <select id="update-item-select" class="form-control">
+                                    <!-- Optionen werden per JS gefüllt -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="update-item-quantity">Neue Menge</label>
+                                <input type="number" id="update-item-quantity" class="form-control" min="0">
+                            </div>
+                            <button type="submit" class="btn" style="height: 40px; margin-bottom: 1rem;">Menge ändern</button>
+                        </div>
+                    </form>
+                    <div class="mt-2">
+                        <button id="export-csv-btn" class="btn">EXPORT (.CSV)</button>
+                        <button id="copy-for-ai-btn" class="btn">Kopieren für KI</button>
+                    </div>
+                </div>
+
+                <div class="content-section" id="power-search-section">
+                    <h3>Power-Suche (Partner & Eigenes Inventar)</h3>
+                    <div class="form-group">
+                        <label for="power-search-input">Suche Items bei dir und Partnern:</label>
+                        <input type="search" id="power-search-input" class="form-control" placeholder="Mind. 2-3 Zeichen eingeben...">
+                    </div>
+                    <div class="form-group checkbox-group" id="power-search-partners-filter">
+                        <label><input type="checkbox" id="power-search-select-all-partners" checked> <span>Alle auswählen</span></label>
+                        <!-- Partner-Checkboxen werden hier per JS eingefügt -->
+                    </div>
+                    <table class="data-table" id="power-search-results-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Besitzer (IGN)</th>
+                                <th>Menge</th>
+                                <th>Gesamt</th>
+                                <th>Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Suchergebnisse werden hier per JS eingefügt -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="content-section" id="partner-system-section">
+                    <h3>Partnerschaften</h3>
+                    <div id="pending-requests-received" class="mb-2">
+                        <h4>Empfangene Anfragen</h4>
+                        <ul id="received-requests-list"></ul>
+                    </div>
+                    <div id="pending-requests-sent" class="mb-2">
+                        <h4>Gesendete Anfragen</h4>
+                        <ul id="sent-requests-list"></ul>
+                    </div>
+                    <div id="active-partners" class="mb-2">
+                        <h4>Aktive Partner</h4>
+                        <ul id="active-partners-list"></ul>
+                    </div>
+                    <form id="send-partner-request-form">
+                        <div class="form-group">
+                            <label for="partner-tenno-name">Partner Tenno-Name für Anfrage:</label>
+                            <input type="text" id="partner-tenno-name" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn">Anfrage senden</button>
+                    </form>
+                </div>
+
+                <div class="content-section" id="gemini-import-section">
+                    <h3>Inventar-Import via Bild/Video (Gemini)</h3>
+                    <div class="form-group">
+                        <label for="inventory-file-upload">Bild/Video hochladen:</label>
+                        <input type="file" id="inventory-file-upload" class="form-control" accept="image/*,video/*">
+                    </div>
+                    <button id="start-gemini-import-btn" class="btn">Import starten</button>
+                    <div id="custom-gemini-key-container">
+                        <button id="custom-gemini-key-btn" class="btn btn-secondary">Custom Gemini Key</button>
+                        <div id="gemini-key-input-field" class="form-group hidden mt-1">
+                            <label for="custom-gemini-api-key">Eigener Gemini API Key:</label>
+                            <input type="text" id="custom-gemini-api-key" class="form-control" placeholder="Optional: AIzaSy...">
+                            <button id="save-custom-gemini-key-btn" class="btn btn-secondary mt-1">Speichern</button>
+                        </div>
+                    </div>
+                    <p class="mt-1" style="font-size: 0.8em; color: var(--color-text-darker);">Standard API Key: AIzaSy...q6E (ausgeblendet). Die Gemini-Funktionalität ist derzeit ein Prototyp und die Verarbeitung findet clientseitig statt.</p>
+                </div>
+                 <div class="content-section" id="user-settings-section">
+                    <h3>Einstellungen</h3>
+                    <form id="update-ign-form">
+                        <div class="form-group">
+                            <label for="new-ingame-name-setting">In-Game-Namen ändern:</label>
+                            <input type="text" id="new-ingame-name-setting" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn">IGN Speichern</button>
+                    </form>
+                </div>
+
+
+            </section>
+        </main>
+    </div>
+
+    <!-- Modale Fenster -->
+    <div id="confirmation-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirmation-modal-title">Bestätigung</h3>
+                <button class="close-modal-btn" data-target-modal="confirmation-modal">&times;</button>
+            </div>
+            <p id="confirmation-modal-message">Möchten Sie diese Aktion wirklich durchführen?</p>
+            <div class="modal-actions mt-2" style="text-align: right;">
+                <button id="confirm-action-btn" class="btn">Bestätigen</button>
+                <button id="cancel-action-btn" class="btn btn-secondary close-modal-btn" data-target-modal="confirmation-modal">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-modal" class="modal-backdrop">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h3 id="message-modal-title">Information</h3>
+                <button class="close-modal-btn" data-target-modal="message-modal">&times;</button>
+            </div>
+            <p id="message-modal-text"></p>
+            <div class="modal-actions mt-2" style="text-align: right;">
+                 <button class="btn close-modal-btn" data-target-modal="message-modal">OK</button>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="app-footer">
+        <p class="footer-line-1" id="footer-text-1"></p>
+        <p class="footer-line-2">Made with ♥️ in 🇵🇪 Lima for the World!</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Globale Variablen und Zustand ---
+            const API_URL = 'api.php';
+            const GEMINI_DEFAULT_API_KEY = 'AIzaSyAFzoq1uNS0B_N4YrZgwNt6uxnd-Xd8q6E';
+            let currentUser = null; // Speichert Benutzerdaten nach Login
+            let userInventory = [];
+            let userPartners = { active: [], pending_sent: [], pending_received: [] };
+            let currentInventoryPage = 1;
+            const itemsPerPage = 10; // Für Pagination des eigenen Inventars
+
+            // --- UI Elemente ---
+            const loginView = document.getElementById('login-view');
+            const dashboardView = document.getElementById('dashboard-view');
+            const userGreeting = document.getElementById('user-greeting');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            const loginForm = document.getElementById('login-form');
+            const registerForm = document.getElementById('register-form');
+            const formTitle = document.getElementById('form-title');
+            const toggleFormLink = document.getElementById('toggle-form-link');
+            const formErrorMessage = document.getElementById('form-error-message');
+
+            const myInventoryTableBody = document.getElementById('my-inventory-table').querySelector('tbody');
+            const myInventoryPagination = document.getElementById('my-inventory-pagination');
+            const inventorySearchInput = document.getElementById('inventory-search');
+
+            const addItemForm = document.getElementById('add-item-form');
+            const updateItemForm = document.getElementById('update-item-form');
+            const updateItemSelect = document.getElementById('update-item-select');
+
+            const powerSearchInput = document.getElementById('power-search-input');
+            const powerSearchPartnersFilter = document.getElementById('power-search-partners-filter');
+            const powerSearchResultsTableBody = document.getElementById('power-search-results-table').querySelector('tbody');
+            const powerSearchSelectAllPartnersCheckbox = document.getElementById('power-search-select-all-partners');
+
+            const receivedRequestsList = document.getElementById('received-requests-list');
+            const sentRequestsList = document.getElementById('sent-requests-list');
+            const activePartnersList = document.getElementById('active-partners-list');
+            const sendPartnerRequestForm = document.getElementById('send-partner-request-form');
+
+            const exportCsvBtn = document.getElementById('export-csv-btn');
+            const copyForAiBtn = document.getElementById('copy-for-ai-btn');
+
+            const inventoryFileUpload = document.getElementById('inventory-file-upload');
+            const startGeminiImportBtn = document.getElementById('start-gemini-import-btn');
+            const customGeminiKeyBtn = document.getElementById('custom-gemini-key-btn');
+            const geminiKeyInputField = document.getElementById('gemini-key-input-field');
+            const customGeminiApiKeyInput = document.getElementById('custom-gemini-api-key');
+            const saveCustomGeminiKeyBtn = document.getElementById('save-custom-gemini-key-btn');
+
+            const updateIgnForm = document.getElementById('update-ign-form');
+            const newIngameNameSettingInput = document.getElementById('new-ingame-name-setting');
+
+            // Modals
+            const confirmationModal = document.getElementById('confirmation-modal');
+            const confirmationModalTitle = document.getElementById('confirmation-modal-title');
+            const confirmationModalMessage = document.getElementById('confirmation-modal-message');
+            const confirmActionBtn = document.getElementById('confirm-action-btn');
+            const cancelActionBtn = document.getElementById('cancel-action-btn');
+
+            const messageModal = document.getElementById('message-modal');
+            const messageModalTitle = document.getElementById('message-modal-title');
+            const messageModalText = document.getElementById('message-modal-text');
+
+
+            // --- Hilfsfunktionen ---
+            async function apiCall(action, data = {}, method = 'POST') {
+                try {
+                    const options = {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                    };
+                    if (method === 'POST' || method === 'PUT') {
+                        options.body = JSON.stringify({ action, ...data });
+                    }
+
+                    let url = API_URL;
+                    if (method === 'GET') { // Für GET-Requests Parameter an URL anhängen
+                        const params = new URLSearchParams({ action, ...data });
+                        url += `?${params}`;
+                    }
+
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        // Versuche, die Fehlermeldung vom Server zu parsen
+                        let errorData;
+                        try {
+                            errorData = await response.json();
+                        } catch (e) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('API Call Error:', error);
+                    showMessageModal('API Fehler', `Ein Fehler ist aufgetreten: ${error.message}`);
+                    throw error; // Fehler weiterwerfen, damit aufrufende Funktion ihn behandeln kann
+                }
+            }
+
+            function showMessageModal(title, message) {
+                messageModalTitle.textContent = title;
+                messageModalText.innerHTML = message; // innerHTML um ggf. kleine HTML-Formatierungen zu erlauben
+                messageModal.classList.add('active');
+            }
+
+            function showConfirmationModal(title, message, onConfirm) {
+                confirmationModalTitle.textContent = title;
+                confirmationModalMessage.textContent = message;
+                confirmationModal.classList.add('active');
+
+                // Wichtig: Alte Event-Listener entfernen, um Mehrfachausführung zu verhindern
+                const newConfirmBtn = confirmActionBtn.cloneNode(true);
+                confirmActionBtn.parentNode.replaceChild(newConfirmBtn, confirmActionBtn);
+                // confirmActionBtn global neu zuweisen
+                window.confirmActionBtn = newConfirmBtn;
+
+
+                newConfirmBtn.onclick = async () => { // async machen, falls onConfirm ein Promise ist
+                    try {
+                        await onConfirm();
+                    } finally {
+                       confirmationModal.classList.remove('active');
+                    }
+                };
+            }
+
+            function updateLoginView(isLoggedIn) {
+                if (isLoggedIn && currentUser) {
+                    loginView.classList.add('hidden');
+                    dashboardView.classList.remove('hidden');
+                    userGreeting.textContent = `Willkommen, ${currentUser.tenno_name} (IGN: ${currentUser.ingame_name})`;
+                    logoutBtn.classList.remove('hidden');
+                    loadUserDashboardData(); // Lade Daten, wenn der Benutzer eingeloggt ist
+                } else {
+                    loginView.classList.remove('hidden');
+                    dashboardView.classList.add('hidden');
+                    userGreeting.textContent = 'Nicht eingeloggt';
+                    logoutBtn.classList.add('hidden');
+                    currentUser = null;
+                    userInventory = [];
+                    userPartners = { active: [], pending_sent: [], pending_received: [] };
+                    clearDashboardData(); // Dashboard leeren
+                }
+            }
+
+            function clearDashboardData() {
+                myInventoryTableBody.innerHTML = '';
+                myInventoryPagination.innerHTML = '';
+                updateItemSelect.innerHTML = '<option value="">Item zum Aktualisieren auswählen</option>';
+                powerSearchResultsTableBody.innerHTML = '';
+                powerSearchPartnersFilter.innerHTML = '<label><input type="checkbox" id="power-search-select-all-partners" checked> <span>Alle auswählen</span></label>'; // Reset
+                document.getElementById('power-search-select-all-partners').addEventListener('change', toggleAllPartnerCheckboxes);
+
+
+                receivedRequestsList.innerHTML = '<li>Keine empfangenen Anfragen.</li>';
+                sentRequestsList.innerHTML = '<li>Keine gesendeten Anfragen.</li>';
+                activePartnersList.innerHTML = '<li>Keine aktiven Partner.</li>';
+            }
+
+
+            // --- Initialisierung ---
+            function init() {
+                // Dynamischer Footer
+                const currentYear = new Date().getFullYear();
+                const version = "1.69b";
+                document.getElementById('footer-text-1').textContent = `© ${currentYear} CheloPrime69 Relais-Systeme v${version}. Alle Rechte vorbehalten.`;
+
+                // Event Listener für Modalschließbuttons
+                document.querySelectorAll('.close-modal-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const modalId = btn.getAttribute('data-target-modal');
+                        if (modalId) {
+                            document.getElementById(modalId).classList.remove('active');
+                        } else {
+                            btn.closest('.modal-backdrop').classList.remove('active');
+                        }
+                    });
+                });
+
+                // Event Listener für das Umschalten zwischen Login- und Registrierungsformular
+                toggleFormLink.addEventListener('click', () => {
+                    formErrorMessage.textContent = '';
+                    if (loginForm.classList.contains('hidden')) {
+                        loginForm.classList.remove('hidden');
+                        registerForm.classList.add('hidden');
+                        formTitle.textContent = 'Login';
+                        toggleFormLink.textContent = 'Noch keinen Account? Registrieren';
+                    } else {
+                        loginForm.classList.add('hidden');
+                        registerForm.classList.remove('hidden');
+                        formTitle.textContent = 'Registrieren';
+                        toggleFormLink.textContent = 'Bereits einen Account? Login';
+                    }
+                });
+
+                // Login Formular
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    formErrorMessage.textContent = '';
+                    const tenno_name = document.getElementById('tenno_name_login').value;
+                    const password = document.getElementById('password_login').value;
+                    try {
+                        const response = await apiCall('login', { tenno_name, password });
+                        if (response.status === 'success') {
+                            currentUser = response.user;
+                            updateLoginView(true);
+                        } else {
+                            formErrorMessage.textContent = response.message || 'Login fehlgeschlagen.';
+                        }
+                    } catch (error) {
+                        formErrorMessage.textContent = error.message || 'Login fehlgeschlagen.';
+                    }
+                });
+
+                // Registrierungsformular
+                registerForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    formErrorMessage.textContent = '';
+                    const tenno_name = document.getElementById('tenno_name_register').value;
+                    const ingame_name = document.getElementById('ingame_name_register').value;
+                    const password = document.getElementById('password_register').value;
+                    const access_key = document.getElementById('access_key_register').value;
+
+                    if (!tenno_name || !ingame_name || !password || !access_key) {
+                        formErrorMessage.textContent = 'Alle Felder sind erforderlich.';
+                        return;
+                    }
+
+                    try {
+                        const response = await apiCall('register', { tenno_name, ingame_name, password, access_key });
+                        if (response.status === 'success') {
+                            showMessageModal('Registrierung erfolgreich', response.message + ' Sie können sich jetzt einloggen.');
+                            // Zurück zum Login-Formular wechseln
+                            loginForm.classList.remove('hidden');
+                            registerForm.classList.add('hidden');
+                            formTitle.textContent = 'Login';
+                            toggleFormLink.textContent = 'Noch keinen Account? Registrieren';
+                            loginForm.reset();
+                            registerForm.reset();
+                        } else {
+                            formErrorMessage.textContent = response.message || 'Registrierung fehlgeschlagen.';
+                        }
+                    } catch (error) {
+                        formErrorMessage.textContent = error.message || 'Registrierung fehlgeschlagen.';
+                    }
+                });
+
+                // Logout Button
+                logoutBtn.addEventListener('click', async () => {
+                    try {
+                        const response = await apiCall('logout', {}, 'GET'); // Logout kann GET sein
+                        if (response.status === 'success') {
+                            updateLoginView(false);
+                        } else {
+                            showMessageModal('Logout Fehler', response.message || 'Logout fehlgeschlagen.');
+                        }
+                    } catch (error) {
+                         showMessageModal('Logout Fehler', error.message || 'Logout fehlgeschlagen.');
+                    }
+                });
+
+                // --- Dashboard Daten laden und anzeigen ---
+                async function loadUserDashboardData() {
+                    if (!currentUser) return;
+                    try {
+                        const response = await apiCall('get_user_data', {}, 'GET');
+                        if (response.status === 'success' && response.data) {
+                            userInventory = response.data.inventory || [];
+                            userPartners = response.data.partners || { active: [], pending_sent: [], pending_received: [] };
+
+                            currentInventoryPage = 1; // Reset page on data load
+                            renderMyInventory();
+                            populateUpdateItemSelect();
+                            renderPartnerSystem();
+                            renderPowerSearchPartnerFilters();
+                        } else {
+                            showMessageModal('Datenladefehler', response.message || 'Konnte Benutzerdaten nicht laden.');
+                            clearDashboardData();
+                        }
+                    } catch (error) {
+                        showMessageModal('Datenladefehler', error.message || 'Konnte Benutzerdaten nicht laden.');
+                        clearDashboardData();
+                    }
+                }
+
+                // --- Mein Inventar ---
+                function renderMyInventory(searchTerm = '') {
+                    myInventoryTableBody.innerHTML = '';
+                    if (!userInventory) userInventory = [];
+
+                    const filteredInventory = userInventory.filter(item =>
+                        item.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        item.category.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+
+                    // Pagination Logic
+                    const startIndex = (currentInventoryPage - 1) * itemsPerPage;
+                    const endIndex = startIndex + itemsPerPage;
+                    const paginatedItems = filteredInventory.slice(startIndex, endIndex);
+
+                    if (paginatedItems.length === 0 && filteredInventory.length > 0) { // If current page is empty but items exist
+                        currentInventoryPage = Math.max(1, Math.ceil(filteredInventory.length / itemsPerPage));
+                        // Re-render with corrected page
+                        renderMyInventory(searchTerm);
+                        return;
+                    }
+
+                    if (paginatedItems.length === 0) {
+                        myInventoryTableBody.innerHTML = `<tr><td colspan="4" class="text-center">Keine Items im Inventar ${searchTerm ? 'gefunden' : ''}.</td></tr>`;
+                    }
+
+                    paginatedItems.forEach(item => {
+                        const row = myInventoryTableBody.insertRow();
+                        row.insertCell().textContent = item.category || 'N/A';
+                        row.insertCell().textContent = item.item_name;
+                        row.insertCell().textContent = item.quantity;
+
+                        const actionsCell = row.insertCell();
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.classList.add('btn', 'btn-danger', 'btn-sm');
+                        deleteBtn.textContent = 'Löschen';
+                        deleteBtn.style.padding = '3px 8px'; // Smaller button
+                        deleteBtn.style.fontSize = '0.8em';
+                        deleteBtn.onclick = () => confirmDeleteItem(item.item_name);
+                        actionsCell.appendChild(deleteBtn);
+                    });
+                    renderInventoryPagination(filteredInventory.length);
+                }
+
+                function renderInventoryPagination(totalItems) {
+                    myInventoryPagination.innerHTML = '';
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+                    if (totalPages <= 1) return;
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        const pageButton = document.createElement('button');
+                        pageButton.classList.add('btn', 'btn-secondary');
+                        if (i === currentInventoryPage) {
+                            pageButton.classList.add('active');
+                        }
+                        pageButton.textContent = i;
+                        pageButton.addEventListener('click', () => {
+                            currentInventoryPage = i;
+                            renderMyInventory(inventorySearchInput.value);
+                        });
+                        myInventoryPagination.appendChild(pageButton);
+                    }
+                }
+
+                inventorySearchInput.addEventListener('input', () => {
+                    currentInventoryPage = 1; // Reset to first page on new search
+                    renderMyInventory(inventorySearchInput.value);
+                });
+
+                // Item hinzufügen
+                addItemForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const itemName = document.getElementById('new-item-name').value.trim();
+                    const quantity = parseInt(document.getElementById('new-item-quantity').value);
+                    const category = document.getElementById('new-item-category').value.trim() || 'Uncategorized';
+
+                    if (!itemName || quantity < 1) {
+                        showMessageModal('Fehler', 'Item-Name und eine gültige Menge (>0) sind erforderlich.');
+                        return;
+                    }
+
+                    const existingItem = userInventory.find(item => item.item_name.toLowerCase() === itemName.toLowerCase());
+                    if (existingItem) {
+                         showConfirmationModal(
+                            'Item existiert bereits',
+                            `Das Item "${itemName}" ist bereits mit Menge ${existingItem.quantity} in Kategorie "${existingItem.category}" vorhanden. Möchtest du die Menge um ${quantity} erhöhen und die Kategorie ggf. zu "${category}" ändern?`,
+                            async () => {
+                                existingItem.quantity += quantity;
+                                existingItem.category = category; // Kategorie aktualisieren
+                                await saveInventoryChanges();
+                                addItemForm.reset();
+                            }
+                        );
+                    } else {
+                        userInventory.push({ item_name: itemName, quantity: quantity, category: category });
+                        await saveInventoryChanges();
+                        addItemForm.reset();
+                    }
+                });
+
+                // Item-Menge aktualisieren (Dropdown)
+                function populateUpdateItemSelect() {
+                    updateItemSelect.innerHTML = '<option value="">Item zum Aktualisieren auswählen</option>';
+                    userInventory.sort((a,b) => a.item_name.localeCompare(b.item_name)).forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.item_name;
+                        option.textContent = `${item.item_name} (Kat: ${item.category}, Aktuell: ${item.quantity})`;
+                        updateItemSelect.appendChild(option);
+                    });
+                }
+
+                updateItemForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const itemName = updateItemSelect.value;
+                    const newQuantity = parseInt(document.getElementById('update-item-quantity').value);
+
+                    if (!itemName || isNaN(newQuantity) || newQuantity < 0) {
+                        showMessageModal('Fehler', 'Bitte wähle ein Item und gib eine gültige neue Menge (>=0) ein.');
+                        return;
+                    }
+
+                    const itemToUpdate = userInventory.find(item => item.item_name === itemName);
+                    if (itemToUpdate) {
+                        if (newQuantity === 0) { // Item löschen, wenn Menge 0
+                           confirmDeleteItem(itemName);
+                        } else {
+                            itemToUpdate.quantity = newQuantity;
+                            await saveInventoryChanges();
+                        }
+                        updateItemForm.reset(); // Formular zurücksetzen
+                        updateItemSelect.value = ""; // Auswahl im Select zurücksetzen
+                    }
+                });
+
+                async function confirmDeleteItem(itemName) {
+                    showConfirmationModal(
+                        'Item löschen',
+                        `Möchtest du "${itemName}" wirklich aus deinem Inventar löschen?`,
+                        async () => {
+                            userInventory = userInventory.filter(item => item.item_name !== itemName);
+                            await saveInventoryChanges();
+                        }
+                    );
+                }
+
+                async function saveInventoryChanges() {
+                    try {
+                        const response = await apiCall('update_inventory', { inventory: userInventory });
+                        if (response.status === 'success') {
+                            showMessageModal('Erfolg', 'Inventar erfolgreich aktualisiert.');
+                            // Daten neu laden oder zumindest UI synchronisieren
+                            renderMyInventory(inventorySearchInput.value);
+                            populateUpdateItemSelect();
+                        } else {
+                            showMessageModal('Fehler', response.message || 'Inventar konnte nicht gespeichert werden.');
+                            // Evtl. Rollback der lokalen Änderungen oder erneutes Laden vom Server
+                            await loadUserDashboardData();
+                        }
+                    } catch (error) {
+                         showMessageModal('Fehler', error.message || 'Inventar konnte nicht gespeichert werden.');
+                         await loadUserDashboardData();
+                    }
+                }
+
+                // --- Partnersystem ---
+                function renderPartnerSystem() {
+                    // Empfangene Anfragen
+                    receivedRequestsList.innerHTML = '';
+                    if (userPartners.pending_received && userPartners.pending_received.length > 0) {
+                        userPartners.pending_received.forEach(req => {
+                            const li = document.createElement('li');
+                            li.textContent = `${req.tenno_name} (IGN: ${req.ingame_name}) möchte dein Partner werden. `;
+                            const acceptBtn = document.createElement('button');
+                            acceptBtn.classList.add('btn', 'btn-sm'); acceptBtn.textContent = 'Annehmen';
+                            acceptBtn.onclick = () => respondToPartnerRequest(req.partnership_id, 'accepted');
+                            const rejectBtn = document.createElement('button');
+                            rejectBtn.classList.add('btn', 'btn-danger', 'btn-sm'); rejectBtn.textContent = 'Ablehnen';
+                            rejectBtn.onclick = () => respondToPartnerRequest(req.partnership_id, 'rejected');
+                            li.appendChild(acceptBtn); li.appendChild(rejectBtn);
+                            receivedRequestsList.appendChild(li);
+                        });
+                    } else {
+                        receivedRequestsList.innerHTML = '<li>Keine empfangenen Anfragen.</li>';
+                    }
+
+                    // Gesendete Anfragen
+                    sentRequestsList.innerHTML = '';
+                    if (userPartners.pending_sent && userPartners.pending_sent.length > 0) {
+                        userPartners.pending_sent.forEach(req => {
+                            const li = document.createElement('li');
+                            li.textContent = `Anfrage an ${req.tenno_name} (IGN: ${req.ingame_name}) steht aus.`;
+                            sentRequestsList.appendChild(li);
+                        });
+                    } else {
+                        sentRequestsList.innerHTML = '<li>Keine gesendeten Anfragen.</li>';
+                    }
+
+                    // Aktive Partner
+                    activePartnersList.innerHTML = '';
+                    if (userPartners.active && userPartners.active.length > 0) {
+                        userPartners.active.forEach(partner => {
+                            const li = document.createElement('li');
+                            li.textContent = `${partner.tenno_name} (IGN: ${partner.ingame_name}) `;
+                            const disconnectBtn = document.createElement('button');
+                            disconnectBtn.classList.add('btn', 'btn-danger', 'btn-sm'); disconnectBtn.textContent = 'Trennen';
+                            disconnectBtn.onclick = () => confirmDisconnectPartner(partner.user_id, partner.tenno_name);
+                            li.appendChild(disconnectBtn);
+                            activePartnersList.appendChild(li);
+                        });
+                    } else {
+                        activePartnersList.innerHTML = '<li>Keine aktiven Partner.</li>';
+                    }
+                }
+
+                sendPartnerRequestForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const partnerTennoName = document.getElementById('partner-tenno-name').value.trim();
+                    if (!partnerTennoName) {
+                        showMessageModal('Fehler', 'Bitte gib den Tenno-Namen des Partners ein.');
+                        return;
+                    }
+                    try {
+                        const response = await apiCall('send_partner_request', { partner_tenno_name: partnerTennoName });
+                        showMessageModal(response.status === 'success' ? 'Erfolg' : 'Info/Fehler', response.message);
+                        if (response.status === 'success') {
+                            sendPartnerRequestForm.reset();
+                            await loadUserDashboardData(); // Partnerliste neu laden
+                        }
+                    } catch (error) {
+                        // Wird von apiCall behandelt
+                    }
+                });
+
+                async function respondToPartnerRequest(partnershipId, responseStatus) {
+                    try {
+                        const response = await apiCall('respond_to_request', { partnership_id: partnershipId, response_status: responseStatus });
+                        showMessageModal('Partneranfrage', response.message);
+                        if (response.status === 'success') {
+                            await loadUserDashboardData(); // Partnerliste neu laden
+                        }
+                    } catch (error) {
+                         // Wird von apiCall behandelt
+                    }
+                }
+
+                function confirmDisconnectPartner(partnerUserId, partnerTennoName) {
+                     showConfirmationModal(
+                        'Partnerschaft beenden',
+                        `Möchtest du die Partnerschaft mit ${partnerTennoName} wirklich beenden? Ihr könnt dann nicht mehr die Inventare des anderen sehen.`,
+                        async () => {
+                            try {
+                                const response = await apiCall('disconnect_partner', { partner_user_id: partnerUserId });
+                                showMessageModal('Partnerschaft', response.message);
+                                if (response.status === 'success') {
+                                    await loadUserDashboardData();
+                                }
+                            } catch (error) {
+                                // Wird von apiCall behandelt
+                            }
+                        }
+                    );
+                }
+
+                // --- Power Suche ---
+                function renderPowerSearchPartnerFilters() {
+                    // Clear existing (except "select all")
+                    const selectAllLabel = powerSearchPartnersFilter.querySelector('label:first-child');
+                    powerSearchPartnersFilter.innerHTML = '';
+                    powerSearchPartnersFilter.appendChild(selectAllLabel); // Add "select all" back
+
+                    if (userPartners.active && userPartners.active.length > 0) {
+                        userPartners.active.forEach(partner => {
+                            const label = document.createElement('label');
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.value = partner.user_id;
+                            checkbox.checked = true; // Standardmäßig alle ausgewählt
+                            checkbox.dataset.partnerName = partner.ingame_name; // Für Anzeige in Ergebnissen
+                            checkbox.addEventListener('change', performPowerSearch);
+
+                            const span = document.createElement('span');
+                            span.textContent = ` ${partner.tenno_name} (IGN: ${partner.ingame_name})`;
+
+                            label.appendChild(checkbox);
+                            label.appendChild(span);
+                            powerSearchPartnersFilter.appendChild(label);
+                        });
+                    }
+                     // Event listener for "Select All" must be re-attached if cleared
+                    document.getElementById('power-search-select-all-partners').addEventListener('change', toggleAllPartnerCheckboxes);
+
+                }
+
+                function toggleAllPartnerCheckboxes(event) {
+                    const isChecked = event.target.checked;
+                    powerSearchPartnersFilter.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        if (cb.id !== 'power-search-select-all-partners') {
+                            cb.checked = isChecked;
+                        }
+                    });
+                    performPowerSearch();
+                }
+                // Initial call for select all
+                if(powerSearchSelectAllPartnersCheckbox) {
+                    powerSearchSelectAllPartnersCheckbox.addEventListener('change', toggleAllPartnerCheckboxes);
+                }
+
+
+                let powerSearchTimeout;
+                powerSearchInput.addEventListener('input', () => {
+                    clearTimeout(powerSearchTimeout);
+                    powerSearchTimeout = setTimeout(() => {
+                        performPowerSearch();
+                    }, 300); // Kleine Verzögerung, um nicht bei jedem Tastenanschlag zu suchen
+                });
+
+                function performPowerSearch() {
+                    const searchTerm = powerSearchInput.value.toLowerCase().trim();
+                    powerSearchResultsTableBody.innerHTML = '';
+
+                    if (searchTerm.length < 2) { // Mindestens 2 Zeichen für die Suche
+                        if(searchTerm.length > 0) powerSearchResultsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Bitte mindestens 2 Zeichen eingeben.</td></tr>';
+                        return;
+                    }
+
+                    let results = [];
+                    const selectedPartnerIds = Array.from(powerSearchPartnersFilter.querySelectorAll('input[type="checkbox"]:checked'))
+                                                .map(cb => cb.value === 'on' ? null : parseInt(cb.value)) // 'on' ist der default value für die "select all" checkbox, falls sie keinen value hat
+                                                .filter(id => id !== null && !isNaN(id));
+
+
+                    // Eigenes Inventar durchsuchen
+                    userInventory.forEach(item => {
+                        if (item.item_name.toLowerCase().includes(searchTerm)) {
+                            results.push({
+                                item_name: item.item_name,
+                                owner_ign: currentUser.ingame_name,
+                                owner_id: currentUser.id,
+                                quantity: item.quantity,
+                                is_own: true
+                            });
+                        }
+                    });
+
+                    // Partnerinventare durchsuchen
+                    if (userPartners.active) {
+                        userPartners.active.forEach(partner => {
+                            if (selectedPartnerIds.includes(partner.user_id) && partner.inventory) {
+                                partner.inventory.forEach(item => {
+                                    if (item.item_name.toLowerCase().includes(searchTerm)) {
+                                        results.push({
+                                            item_name: item.item_name,
+                                            owner_ign: partner.ingame_name,
+                                            owner_id: partner.user_id,
+                                            quantity: item.quantity,
+                                            is_own: false
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    // Ergebnisse gruppieren und Gesamtmengen berechnen
+                    const groupedResults = results.reduce((acc, curr) => {
+                        if (!acc[curr.item_name]) {
+                            acc[curr.item_name] = {
+                                item_name: curr.item_name,
+                                total_quantity: 0,
+                                owners: []
+                            };
+                        }
+                        acc[curr.item_name].total_quantity += curr.quantity;
+                        acc[curr.item_name].owners.push({
+                            ign: curr.owner_ign,
+                            quantity: curr.quantity,
+                            is_own: curr.is_own
+                        });
+                        return acc;
+                    }, {});
+
+                    if (Object.keys(groupedResults).length === 0) {
+                        powerSearchResultsTableBody.innerHTML = '<tr><td colspan="5" class="text-center">Keine Items gefunden.</td></tr>';
+                        return;
+                    }
+
+                    Object.values(groupedResults).forEach(group => {
+                        group.owners.forEach((owner, index) => {
+                            const row = powerSearchResultsTableBody.insertRow();
+                            row.insertCell().textContent = index === 0 ? group.item_name : ''; // Item-Name nur einmal pro Gruppe
+                            row.insertCell().textContent = owner.ign + (owner.is_own ? ' (Du)' : '');
+                            row.insertCell().textContent = owner.quantity;
+                            row.insertCell().textContent = index === 0 ? group.total_quantity : ''; // Gesamtmenge nur einmal
+
+                            const actionCell = row.insertCell();
+                            if (!owner.is_own) {
+                                const requestBtn = document.createElement('button');
+                                requestBtn.classList.add('btn', 'btn-sm');
+                                requestBtn.textContent = 'Anfragen';
+                                requestBtn.style.padding = '3px 8px';
+                                requestBtn.style.fontSize = '0.8em';
+                                requestBtn.onclick = () => requestTradeFromPartner(owner.ign, group.item_name);
+                                actionCell.appendChild(requestBtn);
+                            }
+                        });
+                    });
+                }
+
+                function requestTradeFromPartner(partnerIgn, itemName) {
+                    const quantity = prompt(`Wieviel von "${itemName}" möchtest du von ${partnerIgn} anfragen?`, "1");
+                    if (quantity !== null && quantity !== "" && !isNaN(parseInt(quantity)) && parseInt(quantity) > 0) {
+                        const message = `/w ${partnerIgn} Hallo! Ich würde gerne ${parseInt(quantity)}x "${itemName}" von dir im Inventar-Terminal anfragen.`;
+                        navigator.clipboard.writeText(message).then(() => {
+                            showMessageModal('Kopiert!', `Folgender Text wurde in die Zwischenablage kopiert:\n${message}`);
+                        }).catch(err => {
+                            showMessageModal('Fehler', 'Konnte Text nicht in die Zwischenablage kopieren: ' + err);
+                        });
+                    } else if (quantity !== null) {
+                        showMessageModal('Ungültige Menge', 'Bitte gib eine gültige Zahl größer als 0 ein.');
+                    }
+                }
+
+
+                // --- Export / Kopieren ---
+                exportCsvBtn.addEventListener('click', () => {
+                    if (userInventory.length === 0) {
+                        showMessageModal('Export', 'Dein Inventar ist leer.');
+                        return;
+                    }
+                    let csvContent = "data:text/csv;charset=utf-8,Kategorie,Item Name,Menge\n";
+                    userInventory.forEach(item => {
+                        csvContent += `"${item.category}","${item.item_name}","${item.quantity}"\n`;
+                    });
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `warframe_inventory_${currentUser.tenno_name}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showMessageModal('Export', 'Inventar als CSV heruntergeladen.');
+                });
+
+                copyForAiBtn.addEventListener('click', () => {
+                    if (userInventory.length === 0) {
+                        showMessageModal('Kopieren', 'Dein Inventar ist leer.');
+                        return;
+                    }
+                    const inventoryString = userInventory.map(item => `${item.item_name}: ${item.quantity}`).join(", ");
+                    navigator.clipboard.writeText(inventoryString).then(() => {
+                        showMessageModal('Kopiert!', 'Inventar als Text in die Zwischenablage kopiert.');
+                    }).catch(err => {
+                        showMessageModal('Fehler', 'Konnte Text nicht in die Zwischenablage kopieren: ' + err);
+                    });
+                });
+
+                // --- Gemini Bilderkennung (UI-Platzhalter) ---
+                customGeminiKeyBtn.addEventListener('click', () => {
+                    geminiKeyInputField.classList.toggle('hidden');
+                    if (!geminiKeyInputField.classList.contains('hidden')) {
+                        customGeminiApiKeyInput.value = localStorage.getItem('customGeminiApiKey') || '';
+                    }
+                });
+                saveCustomGeminiKeyBtn.addEventListener('click', () => {
+                    const key = customGeminiApiKeyInput.value.trim();
+                    if (key) {
+                        localStorage.setItem('customGeminiApiKey', key);
+                        showMessageModal('Gespeichert', 'Eigener Gemini API Key gespeichert.');
+                    } else {
+                        localStorage.removeItem('customGeminiApiKey');
+                        showMessageModal('Gelöscht', 'Eigener Gemini API Key entfernt. Standard wird verwendet.');
+                    }
+                    geminiKeyInputField.classList.add('hidden');
+                });
+                startGeminiImportBtn.addEventListener('click', () => {
+                    // Die eigentliche Gemini API-Integration ist komplex und hier nicht implementiert.
+                    // Hier würde man die Datei (inventoryFileUpload.files[0]) nehmen,
+                    // den API-Key (localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY)
+                    // und einen Aufruf an die Gemini API senden.
+                    // Das Ergebnis würde dann geparst und ins Inventar übernommen werden (ggf. nach Bestätigung).
+                    if (!inventoryFileUpload.files || inventoryFileUpload.files.length === 0) {
+                        showMessageModal('Gemini Import', 'Bitte wähle zuerst eine Bild- oder Videodatei aus.');
+                        return;
+                    }
+                    const userApiKey = localStorage.getItem('customGeminiApiKey') || GEMINI_DEFAULT_API_KEY;
+                    showMessageModal('Gemini Import', `Starte Import mit Datei: ${inventoryFileUpload.files[0].name} und Key: ${userApiKey.substring(0,10)}... (Diese Funktion ist ein Prototyp und führt keine echte Verarbeitung durch.)`);
+                    // Hier könnte man z.B. eine Ladeanzeige starten
+                });
+
+                // --- Geheime Funktion: Inventar löschen ---
+                document.addEventListener('keydown', (event) => {
+                    if (event.ctrlKey && event.altKey && event.key === 'c') { // Strg + Alt + C
+                        if (currentUser && !dashboardView.classList.contains('hidden')) { // Nur wenn eingeloggt und Dashboard sichtbar
+                            event.preventDefault(); // Verhindert Browser-Standardaktionen für den Hotkey
+                            showConfirmationModal(
+                                'Inventar löschen - GEHEIMFUNKTION',
+                                'ACHTUNG! Bist du sicher, dass du dein GESAMTES Inventar unwiderruflich löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden!',
+                                async () => {
+                                    try {
+                                        const response = await apiCall('delete_my_inventory', {});
+                                        showMessageModal('Inventar gelöscht', response.message);
+                                        if (response.status === 'success') {
+                                            await loadUserDashboardData(); // Inventar neu laden (sollte leer sein)
+                                        }
+                                    } catch (error) {
+                                       // Wird von apiCall behandelt
+                                    }
+                                }
+                            );
+                        }
+                    }
+                });
+
+                // --- Einstellungen: IGN ändern ---
+                updateIgnForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const newIgn = newIngameNameSettingInput.value.trim();
+                    if (!newIgn) {
+                        showMessageModal('Fehler', 'Bitte gib einen neuen In-Game-Namen ein.');
+                        return;
+                    }
+                    if (newIgn === currentUser.ingame_name) {
+                        showMessageModal('Info', 'Der neue In-Game-Name ist identisch mit dem aktuellen.');
+                        return;
+                    }
+                    try {
+                        const response = await apiCall('update_ign', { new_ingame_name: newIgn });
+                        showMessageModal('In-Game-Name', response.message);
+                        if (response.status === 'success') {
+                            currentUser.ingame_name = response.new_ingame_name; // Lokalen Benutzer aktualisieren
+                            updateLoginView(true); // UI Header aktualisieren
+                            newIngameNameSettingInput.value = ''; // Feld leeren
+                            // Ggf. Partnerlisten neu rendern, falls IGNs dort angezeigt werden
+                        }
+                    } catch (error) {
+                        // Wird von apiCall behandelt
+                    }
+                });
+
+
+                // Session beim Laden der Seite prüfen
+                (async () => {
+                    try {
+                        const response = await apiCall('check_session', {}, 'GET');
+                        if (response.status === 'success' && response.loggedIn) {
+                            currentUser = response.user;
+                            updateLoginView(true);
+                        } else {
+                            updateLoginView(false);
+                        }
+                    } catch (error) {
+                        updateLoginView(false); // Im Fehlerfall als nicht eingeloggt behandeln
+                    }
+                })();
+            }
+
+            init(); // Anwendung starten
+        });
+    </script>
+</body>
+</html>
