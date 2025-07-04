@@ -1,67 +1,76 @@
--- Warframe Inventar-Terminal by Chelo Lima EIRL
--- Datenbank-Schema
+-- Warframe Inventar-Terminal - Datenbank Schema
+-- Version 1.0
 
--- Tabelle für Benutzer
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `tenno_name` VARCHAR(255) NOT NULL UNIQUE, -- Login-Name
-  `ingame_name` VARCHAR(255) NOT NULL UNIQUE, -- Warframe In-Game-Name
+SET NAMES utf8mb4;
+SET time_zone = '+00:00';
+SET foreign_key_checks = 0;
+SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+
+-- -----------------------------------------------------
+-- Table `users`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE `users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `tenno_name` VARCHAR(255) NOT NULL UNIQUE,
+  `ingame_name` VARCHAR(255) NOT NULL UNIQUE,
   `password_hash` VARCHAR(255) NOT NULL,
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `tenno_name_UNIQUE` (`tenno_name` ASC),
+  UNIQUE INDEX `ingame_name_UNIQUE` (`ingame_name` ASC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabelle für das Inventar der Benutzer
-CREATE TABLE IF NOT EXISTS `inventory` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
+-- -----------------------------------------------------
+-- Table `inventory`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `inventory`;
+CREATE TABLE `inventory` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `user_id` INT NOT NULL,
   `item_name` VARCHAR(255) NOT NULL,
   `quantity` INT NOT NULL DEFAULT 1,
-  `category` VARCHAR(100) DEFAULT 'Uncategorized', -- z.B. Prime-Teile, Relikte, Mods, Ressourcen
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  UNIQUE KEY `user_item_unique` (`user_id`, `item_name`) -- Stellt sicher, dass ein Benutzer nicht denselben Gegenstand mehrmals hat
+  PRIMARY KEY (`id`),
+  INDEX `fk_inventory_users_idx` (`user_id` ASC),
+  UNIQUE INDEX `user_item_UNIQUE` (`user_id` ASC, `item_name` ASC),
+  CONSTRAINT `fk_inventory_users`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabelle für Partnerschaften zwischen Benutzern
-CREATE TABLE IF NOT EXISTS `partnerships` (
-  `id` INT AUTO_INCREMENT PRIMARY KEY,
-  `user_one_id` INT NOT NULL, -- ID des Benutzers, der die Anfrage initiiert hat oder Teil der Partnerschaft ist
-  `user_two_id` INT NOT NULL, -- ID des Benutzers, der die Anfrage erhalten hat oder Teil der Partnerschaft ist
+-- -----------------------------------------------------
+-- Table `partnerships`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `partnerships`;
+CREATE TABLE `partnerships` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `user_one_id` INT NOT NULL,
+  `user_two_id` INT NOT NULL,
   `status` ENUM('pending', 'accepted') NOT NULL DEFAULT 'pending',
-  `requested_by_id` INT NOT NULL, -- ID des Benutzers, der die Anfrage ursprünglich gesendet hat
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_one_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`user_two_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  FOREIGN KEY (`requested_by_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  UNIQUE KEY `unique_partnership` (`user_one_id`, `user_two_id`), -- Verhindert doppelte Partnerschaftseinträge
-  CHECK (`user_one_id` < `user_two_id`) -- Stellt sicher, dass user_one_id immer kleiner ist, um Duplikate wie (1,2) und (2,1) zu vermeiden
+  `requested_by_id` INT NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `fk_partnerships_users1_idx` (`user_one_id` ASC),
+  INDEX `fk_partnerships_users2_idx` (`user_two_id` ASC),
+  INDEX `fk_partnerships_requester_idx` (`requested_by_id` ASC),
+  UNIQUE INDEX `partnership_UNIQUE` (`user_one_id` ASC, `user_two_id` ASC), -- Stellt sicher, dass eine Partnerschaft zwischen zwei Nutzern einzigartig ist
+  CONSTRAINT `fk_partnerships_users1`
+    FOREIGN KEY (`user_one_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_partnerships_users2`
+    FOREIGN KEY (`user_two_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_partnerships_requester`
+    FOREIGN KEY (`requested_by_id`)
+    REFERENCES `users` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `check_users_not_same` CHECK (`user_one_id` <> `user_two_id`) -- Stellt sicher, dass ein Nutzer keine Partnerschaft mit sich selbst eingeht
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Indizes für häufige Abfragen
-CREATE INDEX idx_inventory_user_id ON inventory(user_id);
-CREATE INDEX idx_partnerships_user_one_id ON partnerships(user_one_id);
-CREATE INDEX idx_partnerships_user_two_id ON partnerships(user_two_id);
-CREATE INDEX idx_partnerships_status ON partnerships(status);
-
--- Einige Beispieldaten (optional, zum Testen)
--- Benutzer
--- INSERT INTO `users` (`tenno_name`, `ingame_name`, `password_hash`) VALUES
--- ('CheloPrime', 'CheloPrimeIGN', '$2y$10$exampleHash1...'), -- Passwörter müssen natürlich korrekt gehasht werden
--- ('TennoPartner1', 'PartnerOneIGN', '$2y$10$exampleHash2...');
-
--- Inventar für CheloPrime (user_id wäre 1, wenn es der erste Eintrag ist)
--- INSERT INTO `inventory` (`user_id`, `item_name`, `quantity`, `category`) VALUES
--- (1, 'Forma Blueprint', 10, 'Ressourcen'),
--- (1, 'Orokin Cell', 50, 'Ressourcen'),
--- (1, 'Nekros Prime Neuroptics Blueprint', 1, 'Prime-Teile'),
--- (1, 'Lith C6 Relic', 5, 'Relikte');
-
--- Inventar für TennoPartner1 (user_id wäre 2)
--- INSERT INTO `inventory` (`user_id`, `item_name`, `quantity`, `category`) VALUES
--- (2, 'Ash Prime Systems Blueprint', 2, 'Prime-Teile'),
--- (2, 'Axi A1 Relic', 10, 'Relikte'),
--- (2, 'Serration', 1, 'Mods');
-
--- Partnerschaftsanfrage
--- INSERT INTO `partnerships` (`user_one_id`, `user_two_id`, `status`, `requested_by_id`) VALUES
--- (1, 2, 'pending', 1); -- CheloPrime (1) sendet Anfrage an TennoPartner1 (2)
+SET foreign_key_checks = 1;
